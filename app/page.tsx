@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
-import { getLogoPath } from '@/lib/config'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,13 +13,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [initialized, setInitialized] = useState(false)
-  const [logoPath, setLogoPath] = useState('/hotel-logo.png')
 
   useEffect(() => {
     setInitialized(true)
-    // Load logo path from config
-    const path = getLogoPath()
-    setLogoPath(path)
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -72,15 +66,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <div className="p-8">
           <div className="text-center mb-8">
-            <div className="mb-6 flex justify-center">
-              <Image
-                src={logoPath}
-                alt="Nour Hayat Hotel"
-                width={200}
-                height={80}
-                priority
-                onError={() => setLogoPath('/hotel-logo.png')}
-              />
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-amber-700">هتل نور حیات</h1>
+              <p className="text-sm text-gray-500">Nour Hayat Hotel</p>
             </div>
             <h2 className="text-2xl font-bold text-amber-700 mb-2">سیستم نامه‌نگاری</h2>
             <p className="text-gray-600">اتوماسیون نامه‌نگاری اداری</p>
