@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
+import { getLogoPath } from '@/lib/config'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,9 +15,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [initialized, setInitialized] = useState(false)
+  const [logoPath, setLogoPath] = useState('/hotel-logo.png')
 
   useEffect(() => {
     setInitialized(true)
+    // Load logo path from config
+    const path = getLogoPath()
+    setLogoPath(path)
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -69,11 +74,12 @@ export default function LoginPage() {
           <div className="text-center mb-8">
             <div className="mb-6 flex justify-center">
               <Image
-                src="/logo-optimized.png"
+                src={logoPath}
                 alt="Nour Hayat Hotel"
                 width={200}
                 height={80}
                 priority
+                onError={() => setLogoPath('/hotel-logo.png')}
               />
             </div>
             <h2 className="text-2xl font-bold text-amber-700 mb-2">سیستم نامه‌نگاری</h2>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DEPARTMENTS } from '@/lib/persian-utils'
+import { getLogoPath, setLogoPath } from '@/lib/config'
 
 interface User {
   id: string
@@ -42,6 +43,9 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState({ name: '', permissions: [] })
   const [newDepartment, setNewDepartment] = useState({ name: '', fullName: '' })
   const [signature, setSignature] = useState<File | null>(null)
+  const [showLogoModal, setShowLogoModal] = useState(false)
+  const [currentLogo, setCurrentLogo] = useState('/hotel-logo.png')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
 
   const [users, setUsers] = useState([
     {
@@ -175,7 +179,7 @@ export default function AdminPage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Image
-              src="/logo-optimized.png"
+              src="/hotel-logo.png"
               alt="Nour Hayat Hotel"
               width={100}
               height={40}
@@ -216,6 +220,16 @@ export default function AdminPage() {
             مدیریت نقش‌ها
           </button>
           <button
+            onClick={() => setActiveTab('logo')}
+            className={`px-4 py-2 font-semibold ${
+              activeTab === 'logo'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+            }`}
+          >
+            تنظیم لوگو
+          </button>
+          <button
             onClick={() => setActiveTab('departments')}
             className={`px-4 py-2 font-semibold ${
               activeTab === 'departments'
@@ -236,6 +250,69 @@ export default function AdminPage() {
             آپلود امضاء
           </button>
         </div>
+
+        {/* Logo Tab */}
+        {activeTab === 'logo' && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">تنظیم لوگوی هتل</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">لوگوی فعلی:</label>
+                <div className="flex justify-center p-4 border rounded-lg bg-gray-50">
+                  <Image
+                    src={currentLogo}
+                    alt="Current Logo"
+                    width={200}
+                    height={80}
+                    onError={() => setCurrentLogo('/hotel-logo.png')}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold mb-2">آپلود لوگوی جدید:</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setLogoFile(file)
+                      // Show preview
+                      const reader = new FileReader()
+                      reader.onload = (event) => {
+                        setCurrentLogo(event.target?.result as string)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-2">فرمت‌های پشتیبانی‌شده: PNG, JPG, SVG</p>
+              </div>
+
+              <Button
+                onClick={() => {
+                  if (logoFile) {
+                    // Store logo in localStorage (in real app, would upload to server)
+                    const reader = new FileReader()
+                    reader.onload = (event) => {
+                      const logoPath = event.target?.result as string
+                      setLogoPath(logoPath)
+                      alert('لوگو با موفقیت تغییر کرد')
+                      setLogoFile(null)
+                    }
+                    reader.readAsDataURL(logoFile)
+                  }
+                }}
+                disabled={!logoFile}
+                className="bg-green-600 hover:bg-green-700 text-white w-full"
+              >
+                ذخیره لوگو
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Users Tab */}
         {activeTab === 'users' && (
