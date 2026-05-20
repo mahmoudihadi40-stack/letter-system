@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -189,10 +190,15 @@ export default function ComposePage() {
       <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-amber-700">هتل نور حیات</h2>
-              <p className="text-xs text-gray-500">{editingDraftId ? 'ویرایش پیش‌نویس' : 'نوشتن نامه جدید'}</p>
-            </div>
+            <Image
+              src="/hotel-logo.png"
+              alt="Nour Hayat Hotel"
+              width={90}
+              height={35}
+              priority
+              style={{ maxHeight: '35px', width: 'auto' }}
+            />
+            <p className="text-xs text-gray-500">{editingDraftId ? 'ویرایش پیش‌نویس' : 'نوشتن نامه جدید'}</p>
           </div>
           <Button
             onClick={() => router.push('/dashboard')}
