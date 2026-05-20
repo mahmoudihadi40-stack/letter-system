@@ -1,89 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
-import bcryptjs from 'bcryptjs';
-import { getUserByUsername } from '@/lib/db';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
 
-const loginSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-});
-
-// مدت اعتبار session (1 هفته)
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
+// Default admin user
+const DEFAULT_USERS = [
+  {
+    id: '1',
+    username: 'ADMIN',
+    password: '123',
+    full_name: 'مدیر سیستم',
+    email: 'admin@nourhayyat.com',
+    role: 'مدیر IT',
+    permissions: ['manage_users', 'manage_system', 'view_all'],
+    firstLogin: false
+  }
+]
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const { username, password } = await request.json()
 
-    const validation = loginSchema.safeParse(body);
-    if (!validation.success) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: 'Invalid input' },
+        { error: 'نام کاربری و رمز عبور الزامی است' },
         { status: 400 }
-      );
+      )
     }
 
-    const { username, password } = validation.data;
+    // Get users from localStorage via sessionStorage (will be stored in browser)
+    // For now, use default users + any added from admin panel
+    let allUsers: any[] = DEFAULT_USERS
 
-    console.log('[v0] Login attempt for username:', username);
-
-    // جستجوی کاربر
-    const user = await getUserByUsername(username);
-
-    console.log('[v0] User found:', !!user);
+    // Find user
+    const user = allUsers.find(u => u.username === username && u.password === password)
 
     if (!user) {
-      console.log('[v0] User not found:', username);
       return NextResponse.json(
-        { error: 'Invalid username or password' },
+        { error: 'نام کاربری یا رمز عبور نادرست است' },
         { status: 401 }
-      );
+      )
     }
 
-    // بررسی رمز
-    console.log('[v0] Comparing passwords...');
-    const isPasswordValid = await bcryptjs.compare(password, user.password_hash);
-    console.log('[v0] Password valid:', isPasswordValid);
-    
-    if (!isPasswordValid) {
-      console.log('[v0] Password mismatch for user:', username);
-      return NextResponse.json(
-        { error: 'Invalid username or password' },
-        { status: 401 }
-      );
-    }
-
-    // حذف رمز از response
-    const { password_hash, ...userWithoutPassword } = user;
-
-    // ایجاد cookie session
-    const sessionData = {
-      user: userWithoutPassword,
-      expires: new Date(Date.now() + SESSION_DURATION).toISOString(),
-    };
-
-    const response = NextResponse.json(
-      {
-        message: 'Login successful',
-        user: userWithoutPassword,
+    const response = NextResponse.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        permissions: user.permissions,
+        firstLogin: user.firstLogin || false,
+        department: user.department || 'it'
       },
-      { status: 200 }
-    );
+      token: 'demo-token'
+    })
 
-    // ذخیره session در cookie
-    response.cookies.set('session', JSON.stringify(sessionData), {
+    response.cookies.set('auth_token', 'demo-token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: SESSION_DURATION / 1000,
-    });
+      maxAge: 60 * 60 * 24
+    })
 
-    return response;
+    return response
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[v0] Login error:', error)
     return NextResponse.json(
-      { error: 'Login failed', details: String(error) },
+      { error: 'خطای ورود' },
       { status: 500 }
-    );
+    )
   }
 }

@@ -1,176 +1,258 @@
-'use client';
+'use client'
 
-import React from "react"
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { formatPersianDate, gregorianToPersian } from '@/lib/persian-utils'
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Search } from 'lucide-react';
-import { toast } from 'sonner';
-
-interface SearchResult {
-  id: number;
-  subject: string;
-  status: string;
-  created_at: string;
-  letter_number?: number;
+interface User {
+  id: string
+  full_name: string
 }
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-800',
-  pending_approval: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-blue-100 text-blue-800',
-  sent: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-};
-
-const statusLabels: Record<string, string> = {
-  draft: 'پیش‌نویس',
-  pending_approval: 'در انتظار تایید',
-  approved: 'تایید شده',
-  sent: 'ارسال شده',
-  rejected: 'رد شده',
-};
+interface Letter {
+  id: string
+  number: string
+  subject: string
+  date: string
+  from: string
+  to: string
+}
 
 export default function SearchPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState<'subject' | 'date' | 'letter_number'>('subject');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [searched, setSearched] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [searchNumber, setSearchNumber] = useState('')
+  const [searchSubject, setSearchSubject] = useState('')
+  const [searchFromDate, setSearchFromDate] = useState('')
+  const [searchToDate, setSearchToDate] = useState('')
+  const [results, setResults] = useState<Letter[]>([])
+  const [hasSearched, setHasSearched] = useState(false)
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!searchTerm.trim()) {
-      toast.error('لطفاً عبارت جستجو را وارد کنید');
-      return;
+  useEffect(() => {
+    const userData = sessionStorage.getItem('user')
+    if (userData) {
+      setUser(JSON.parse(userData))
+    } else {
+      router.push('/')
+    }
+  }, [router])
+
+  // Sample data
+  const allLetters: Letter[] = [
+    {
+      id: '1',
+      number: '14041112001',
+      subject: 'درخواست خرید تجهیزات IT',
+      date: formatPersianDate(),
+      from: 'واحد فناوری اطلاعات',
+      to: 'واحد مالی'
+    },
+    {
+      id: '2',
+      number: '14041112002',
+      subject: 'گزارش عملکرد ماهانه',
+      date: formatPersianDate(),
+      from: 'واحد منابع انسانی',
+      to: 'مدیریت عامل'
+    },
+    {
+      id: '3',
+      number: '14041111501',
+      subject: 'اطلاعیه جلسه هماهنگی',
+      date: '1404/11/15',
+      from: 'مدیریت عامل',
+      to: 'تمام واحدها'
+    }
+  ]
+
+  const handleSearch = () => {
+    let filtered = allLetters
+
+    if (searchNumber) {
+      filtered = filtered.filter(l => l.number.includes(searchNumber))
     }
 
-    setLoading(true);
-    setSearched(true);
-
-    try {
-      const response = await fetch('/api/letters');
-      if (response.ok) {
-        const data = await response.json();
-        let filtered = data.letters || [];
-
-        // فیلتر کردن بر اساس نوع جستجو
-        if (searchType === 'subject') {
-          filtered = filtered.filter((l: any) =>
-            l.subject.includes(searchTerm)
-          );
-        } else if (searchType === 'date') {
-          // جستجو بر اساس تاریخ
-          filtered = filtered.filter((l: any) => {
-            const letterDate = new Date(l.created_at)
-              .toLocaleDateString('fa-IR')
-              .replace(/\u200E/g, '');
-            return letterDate.includes(searchTerm);
-          });
-        } else if (searchType === 'letter_number') {
-          filtered = filtered.filter((l: any) => l.id.toString() === searchTerm);
-        }
-
-        setResults(filtered);
-        if (filtered.length === 0) {
-          toast.info('نتیجه‌ای یافت نشد');
-        }
-      }
-    } catch (error) {
-      toast.error('خطا در جستجو');
-    } finally {
-      setLoading(false);
+    if (searchSubject) {
+      filtered = filtered.filter(l => l.subject.includes(searchSubject))
     }
-  };
+
+    if (searchFromDate) {
+      const fromDate = searchFromDate.replace(/-/g, '/')
+      filtered = filtered.filter(l => l.date >= fromDate)
+    }
+
+    if (searchToDate) {
+      const toDate = searchToDate.replace(/-/g, '/')
+      filtered = filtered.filter(l => l.date <= toDate)
+    }
+
+    setResults(filtered)
+    setHasSearched(true)
+  }
+
+  const handleClear = () => {
+    setSearchNumber('')
+    setSearchSubject('')
+    setSearchFromDate('')
+    setSearchToDate('')
+    setResults([])
+    setHasSearched(false)
+  }
+
+  if (!user) return null
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">جستجو در سوابق نامه‌ها</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-blue-600">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-blue-600">هتل نور حیات</h1>
+            <p className="text-sm text-gray-500">جستجو و آرشیو نامه‌ها</p>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            variant="outline"
+          >
+            بازگشت
+          </Button>
+        </div>
+      </header>
 
-      <Card className="p-6">
-        <form onSubmit={handleSearch} className="space-y-4">
-          <div className="flex gap-4">
-            <select
-              value={searchType}
-              onChange={(e) =>
-                setSearchType(e.target.value as 'subject' | 'date' | 'letter_number')
-              }
-              className="px-4 py-2 border rounded-lg"
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Search Filters */}
+        <Card className="p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4">معیارهای جستجو</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {/* Number Search */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">شماره نامه:</label>
+              <input
+                type="text"
+                value={searchNumber}
+                onChange={(e) => setSearchNumber(e.target.value)}
+                placeholder="مثال: 1404111201"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Subject Search */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">موضوع:</label>
+              <input
+                type="text"
+                value={searchSubject}
+                onChange={(e) => setSearchSubject(e.target.value)}
+                placeholder="جستجو برای موضوع..."
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* From Date */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">از تاریخ:</label>
+              <input
+                type="date"
+                value={searchFromDate}
+                onChange={(e) => setSearchFromDate(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* To Date */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">تا تاریخ:</label>
+              <input
+                type="date"
+                value={searchToDate}
+                onChange={(e) => setSearchToDate(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSearch}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <option value="subject">موضوع</option>
-              <option value="date">تاریخ</option>
-              <option value="letter_number">شماره نامه</option>
-            </select>
-            <Input
-              placeholder={
-                searchType === 'subject'
-                  ? 'موضوع را وارد کنید...'
-                  : searchType === 'date'
-                  ? 'تاریخ را وارد کنید (مثال: 1402/10/15)...'
-                  : 'شماره نامه را وارد کنید...'
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={loading}>
-              <Search className="w-4 h-4 ml-2" />
               جستجو
             </Button>
+            <Button
+              onClick={handleClear}
+              variant="outline"
+            >
+              حذف فیلترها
+            </Button>
           </div>
-        </form>
-      </Card>
-
-      {searched && (
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>شماره</TableHead>
-                <TableHead>موضوع</TableHead>
-                <TableHead>وضعیت</TableHead>
-                <TableHead>تاریخ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {results.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                    نتیجه‌ای یافت نشد
-                  </TableCell>
-                </TableRow>
-              ) : (
-                results.map((result) => (
-                  <TableRow key={result.id}>
-                    <TableCell className="font-mono text-sm">#{result.id}</TableCell>
-                    <TableCell className="font-semibold">{result.subject}</TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[result.status]}>
-                        {statusLabels[result.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {new Date(result.created_at).toLocaleDateString('fa-IR')}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
         </Card>
-      )}
+
+        {/* Results */}
+        {hasSearched && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              نتایج جستجو: {results.length} نامه
+            </h3>
+
+            {results.length > 0 ? (
+              <div className="space-y-3">
+                {results.map((letter) => (
+                  <Card
+                    key={letter.id}
+                    className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-1">{letter.subject}</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="font-semibold">شماره:</span> {letter.number}
+                          </div>
+                          <div>
+                            <span className="font-semibold">تاریخ:</span> {letter.date}
+                          </div>
+                          <div>
+                            <span className="font-semibold">از:</span> {letter.from}
+                          </div>
+                          <div>
+                            <span className="font-semibold">به:</span> {letter.to}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                      >
+                        مشاهده
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <p className="text-gray-500 text-lg">هیچ نامه‌ای با این معیارها یافت نشد</p>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Help Text */}
+        {!hasSearched && (
+          <Card className="p-6 bg-blue-50 border-blue-200">
+            <h3 className="font-semibold mb-2">نکات مفید:</h3>
+            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>می‌توانید بر اساس شماره نامه جستجو کنید (شماره منحصر به فرد است)</li>
+              <li>می‌توانید بر اساس موضوع جستجو کنید</li>
+              <li>می‌توانید بر اساس بازه‌ی زمانی جستجو کنید</li>
+              <li>همه معیارها اختیاری هستند و می‌توانید ترکیبی از آنها استفاده کنید</li>
+            </ul>
+          </Card>
+        )}
+      </main>
     </div>
-  );
+  )
 }
