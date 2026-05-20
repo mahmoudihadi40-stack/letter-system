@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -78,8 +79,18 @@ export default function FirstLoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <div className="p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-blue-600 mb-2">اولین ورود</h1>
-            <p className="text-gray-600">لطفاً رمز عبور جدید خود را تعیین کنید</p>
+            <div className="mb-6 flex justify-center">
+              <Image
+                src="/logo.png"
+                alt="Nour Hayat Hotel"
+                width={180}
+                height={70}
+                priority
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">تغییر رمز عبور</h1>
+            <p className="text-gray-600">خوش آمدید، {user?.full_name}</p>
+            <p className="text-sm text-gray-500 mt-2">لطفاً برای بار اول رمز عبور خود را تغییر دهید</p>
           </div>
 
           <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">

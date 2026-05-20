@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -43,12 +44,20 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-blue-600">
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-600">هتل نور حیات</h1>
-            <p className="text-sm text-gray-500 mb-1">Nour Hayat Hotel</p>
-            <p className="text-gray-600">خوش آمدید، {user.full_name}</p>
+          <div className="flex items-center gap-4">
+            <Image
+              src="/logo.png"
+              alt="Nour Hayat Hotel"
+              width={120}
+              height={50}
+              priority
+            />
+            <div>
+              <p className="text-sm text-gray-500">خوش آمدید</p>
+              <p className="text-gray-600 font-semibold">{user.full_name}</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">

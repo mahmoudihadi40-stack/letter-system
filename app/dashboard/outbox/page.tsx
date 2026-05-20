@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -80,10 +81,16 @@ export default function OutboxPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-blue-600">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-blue-600">هتل نور حیات</h1>
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Image
+              src="/logo.png"
+              alt="Nour Hayat Hotel"
+              width={100}
+              height={40}
+              priority
+            />
             <p className="text-sm text-gray-500">نامه‌های صادره</p>
           </div>
           <Button

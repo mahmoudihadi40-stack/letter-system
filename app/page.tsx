@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -66,9 +67,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-lg">
         <div className="p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">هتل نور حیات</h1>
-            <p className="text-sm text-gray-500 mb-4">Nour Hayat Hotel</p>
-            <h2 className="text-2xl font-bold text-blue-600 mb-2">سیستم نامه‌نگاری</h2>
+            <div className="mb-6 flex justify-center">
+              <Image
+                src="/logo.png"
+                alt="Nour Hayat Hotel"
+                width={200}
+                height={80}
+                priority
+              />
+            </div>
+            <h2 className="text-2xl font-bold text-amber-700 mb-2">سیستم نامه‌نگاری</h2>
             <p className="text-gray-600">اتوماسیون نامه‌نگاری اداری</p>
           </div>
 
