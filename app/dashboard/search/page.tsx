@@ -111,7 +111,7 @@ export default function SearchPage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Image
-              src="/logo.png"
+              src="/logo-optimized.png"
               alt="Nour Hayat Hotel"
               width={100}
               height={40}

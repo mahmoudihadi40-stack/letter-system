@@ -69,7 +69,7 @@ export default function LoginPage() {
           <div className="text-center mb-8">
             <div className="mb-6 flex justify-center">
               <Image
-                src="/logo.png"
+                src="/logo-optimized.png"
                 alt="Nour Hayat Hotel"
                 width={200}
                 height={80}

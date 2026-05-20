@@ -191,7 +191,7 @@ export default function ComposePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Image
-              src="/logo.png"
+              src="/logo-optimized.png"
               alt="Nour Hayat Hotel"
               width={100}
               height={40}
@@ -392,6 +392,15 @@ export default function ComposePage() {
         <Card className="p-12 bg-white mb-6" style={{ direction: 'rtl' }}>
           {/* Header Section */}
           <div className="text-center mb-8 pb-6 border-b-2 border-gray-300">
+            <div className="mb-4 flex justify-center">
+              <Image
+                src="/logo-optimized.png"
+                alt="Nour Hayat Hotel"
+                width={150}
+                height={60}
+                priority
+              />
+            </div>
             <p className="text-lg font-semibold mb-4">بسم الله الرحمن الرحیم</p>
             <div className="flex justify-between text-sm text-gray-600">
               <div className="text-right">
