@@ -16,7 +16,7 @@ interface User {
   permissions: string[]
 }
 
-import { getPersianDateAndTime, fetchIranTimeFromTimeIR } from '@/lib/time-utils'
+import { getPersianDateAndTime, fetchIranTimeFromTimeIR, getSystemTime } from '@/lib/time-utils'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -49,6 +49,8 @@ export default function DashboardPage() {
       const timeData = await fetchIranTimeFromTimeIR()
       if (timeData) {
         setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getSystemTime())
       }
     }, 1000)
     

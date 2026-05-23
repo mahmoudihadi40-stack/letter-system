@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
-import { getPersianDateAndTime, fetchIranTimeFromTimeIR } from '@/lib/time-utils'
+import { getPersianDateAndTime, fetchIranTimeFromTimeIR, getSystemTime } from '@/lib/time-utils'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -37,6 +37,8 @@ export default function LoginPage() {
       const timeData = await fetchIranTimeFromTimeIR()
       if (timeData) {
         setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getSystemTime())
       }
     }, 1000)
     

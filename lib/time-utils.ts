@@ -23,57 +23,43 @@ export function getFormattedIranTime(): { date: string; time: string } {
   return { date, time }
 }
 
-// Get time from time.ir (Iran's official time server)
+// Get time from time.ir (Iran's official time server) via API route
 export async function fetchIranTimeFromTimeIR(): Promise<{ date: string; time: string; persianDate: string } | null> {
   try {
-    const response = await fetch('https://www.time.ir/datep')
-    if (!response.ok) throw new Error('time.ir API call failed')
+    const response = await fetch('/api/time', {
+      method: 'GET',
+      cache: 'no-store'
+    })
     
-    const text = await response.text()
-    // Response format: year/month/day hour:minute:second
-    const match = text.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+):(\d+)/)
-    
-    if (!match) {
-      // Fallback to worldtimeapi
-      return fetchIranTimeFromAPI()
-    }
-    
-    const [, year, month, day, hour, minute] = match
-    const persianDate = `${year}/${month}/${day}`
-    const time = `${hour}:${minute}`
-    
-    // Convert Jalali to Gregorian for consistency
-    const gDate = jalaliToGregorian(parseInt(year), parseInt(month), parseInt(day))
-    const date = `${gDate.year}-${String(gDate.month).padStart(2, '0')}-${String(gDate.day).padStart(2, '0')}`
-    
-    return { date, time, persianDate }
-  } catch (error) {
-    console.error('[v0] Failed to fetch from time.ir:', error)
-    // Fallback to worldtimeapi
-    return fetchIranTimeFromAPI()
-  }
-}
-
-// Get time from worldtime API (fallback)
-export async function fetchIranTimeFromAPI(): Promise<{ date: string; time: string; persianDate: string } | null> {
-  try {
-    const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Tehran')
     if (!response.ok) throw new Error('API call failed')
     
     const data = await response.json()
-    const datetime = new Date(data.datetime)
     
-    const date = datetime.toISOString().split('T')[0]
-    const time = datetime.toTimeString().split(' ')[0].substring(0, 5)
+    if (!data.success) {
+      return null
+    }
     
-    const jDate = gregorianToJalali(datetime)
-    const persianDate = formatJalaliDate(jDate)
-    
-    return { date, time, persianDate }
+    return {
+      persianDate: data.persianDate,
+      time: data.time,
+      date: '' // Not used in UI but kept for compatibility
+    }
   } catch (error) {
-    console.error('[v0] Failed to fetch Iran time from API:', error)
+    console.error('[v0] Failed to fetch from API:', error)
     return null
   }
+}
+
+// Get system time as fallback
+export function getSystemTime(): { date: string; time: string; persianDate: string } {
+  const now = new Date()
+  const date = now.toISOString().split('T')[0]
+  const time = now.toTimeString().split(' ')[0].substring(0, 5)
+  
+  const jDate = gregorianToJalali(now)
+  const persianDate = `${jDate.year}/${String(jDate.month).padStart(2, '0')}/${String(jDate.day).padStart(2, '0')}`
+  
+  return { date, time, persianDate }
 }
 
 // Jalali to Gregorian conversion
