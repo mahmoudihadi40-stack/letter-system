@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DEPARTMENTS } from '@/lib/persian-utils'
 import { getLogoPath, setLogoPath } from '@/lib/config'
+import { getTimeSettings, saveTimeSettings, getFormattedIranTime, fetchIranTimeFromAPI, getCurrentSystemTime, getPersianDateAndTime } from '@/lib/time-utils'
 
 interface User {
   id: string
@@ -72,19 +73,46 @@ export default function AdminPage() {
     letterLogoAlignment: 'center' as 'left' | 'center' | 'right'
   })
 
+  // Time settings
+  const [timeSettings, setTimeSettings] = useState(() => getTimeSettings())
+  const [currentSystemTime, setCurrentSystemTime] = useState(getPersianDateAndTime())
+  const [syncingTime, setSyncingTime] = useState(false)
+  
+  // Admin access permissions
+  const [adminUsers, setAdminUsers] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('adminUsers')
+      return saved ? JSON.parse(saved) : ['1'] // Default: ADMIN user
+    }
+    return ['1']
+  })
+
   useEffect(() => {
     const userData = sessionStorage.getItem('user')
     if (userData) {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
 
-      if (parsedUser.role !== 'مدیر IT') {
+      // Check if user has admin access
+      const adminAccessList = localStorage.getItem('adminUsers')
+      const allowedAdmins = adminAccessList ? JSON.parse(adminAccessList) : ['1']
+      
+      if (!allowedAdmins.includes(parsedUser.id) && parsedUser.id !== '1') {
         router.push('/dashboard')
       }
     } else {
       router.push('/')
     }
   }, [router])
+
+  // Update system time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSystemTime(getPersianDateAndTime())
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [timeSettings])
 
   const generatePassword = () => {
     return Math.random().toString(36).slice(-8)
@@ -260,7 +288,186 @@ export default function AdminPage() {
           >
             آپلود امضاء
           </button>
+          <button
+            onClick={() => setActiveTab('time')}
+            className={`px-4 py-2 font-semibold ${
+              activeTab === 'time'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+            }`}
+          >
+            تنظیم تاریخ و ساعت
+          </button>
+          <button
+            onClick={() => setActiveTab('admin-access')}
+            className={`px-4 py-2 font-semibold ${
+              activeTab === 'admin-access'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+            }`}
+          >
+            دسترسی مدیریت
+          </button>
         </div>
+
+        {/* Time Settings Tab */}
+        {activeTab === 'time' && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-6">تنظیم تاریخ و ساعت سیستم</h2>
+            
+            {/* Current Time Display */}
+            <div className="bg-blue-50 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold mb-2">تاریخ و ساعت فعلی سیستم:</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">تاریخ میلادی</p>
+                  <p className="text-lg font-bold">{currentSystemTime.date}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">تاریخ شمسی</p>
+                  <p className="text-lg font-bold">{currentSystemTime.persianDate}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">ساعت</p>
+                  <p className="text-lg font-bold">{currentSystemTime.time}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mode Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-3">حالت تاریخ و ساعت</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="timeMode"
+                    value="automatic"
+                    checked={timeSettings.timeMode === 'automatic'}
+                    onChange={(e) => {
+                      const newSettings = { ...timeSettings, timeMode: 'automatic' as const }
+                      setTimeSettings(newSettings)
+                      saveTimeSettings(newSettings)
+                    }}
+                  />
+                  <span>خودکار (از اینترنت)</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="timeMode"
+                    value="manual"
+                    checked={timeSettings.timeMode === 'manual'}
+                    onChange={(e) => {
+                      const newSettings = { ...timeSettings, timeMode: 'manual' as const }
+                      setTimeSettings(newSettings)
+                      saveTimeSettings(newSettings)
+                    }}
+                  />
+                  <span>دستی</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Manual Time Settings */}
+            {timeSettings.timeMode === 'manual' && (
+              <div className="border-t pt-6 mb-6">
+                <h3 className="font-semibold mb-4">تنظیم دستی</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">تاریخ (YYYY-MM-DD)</label>
+                    <input
+                      type="date"
+                      value={timeSettings.manualDate}
+                      onChange={(e) => {
+                        const newSettings = { ...timeSettings, manualDate: e.target.value }
+                        setTimeSettings(newSettings)
+                        saveTimeSettings(newSettings)
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">ساعت (HH:mm)</label>
+                    <input
+                      type="time"
+                      value={timeSettings.manualTime}
+                      onChange={(e) => {
+                        const newSettings = { ...timeSettings, manualTime: e.target.value }
+                        setTimeSettings(newSettings)
+                        saveTimeSettings(newSettings)
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Automatic Time Settings */}
+            {timeSettings.timeMode === 'automatic' && (
+              <div className="border-t pt-6">
+                <Button
+                  onClick={async () => {
+                    setSyncingTime(true)
+                    const result = await fetchIranTimeFromAPI()
+                    if (result) {
+                      setCurrentSystemTime({ ...result, persianDate: currentSystemTime.persianDate })
+                      alert('تاریخ و ساعت با موفقیت بروز رسانی شد')
+                    } else {
+                      alert('خطا در دریافت تاریخ و ساعت از اینترنت')
+                    }
+                    setSyncingTime(false)
+                  }}
+                  disabled={syncingTime}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {syncingTime ? 'در حال بروز رسانی...' : 'همزمان سازی الآن'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">تاریخ و ساعت سیستم به صورت خودکار از سرور جهانی دریافت می‌شود</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Admin Access Tab */}
+        {activeTab === 'admin-access' && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-6">مدیریت دسترسی پنل مدیریت</h2>
+            
+            <div className="space-y-4">
+              {users.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                  <div>
+                    <p className="font-semibold">{user.fullName}</p>
+                    <p className="text-sm text-gray-500">{user.username} - {user.role}</p>
+                  </div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={adminUsers.includes(user.id)}
+                      onChange={(e) => {
+                        let newAdminUsers: string[]
+                        if (e.target.checked) {
+                          newAdminUsers = [...adminUsers, user.id]
+                        } else {
+                          newAdminUsers = adminUsers.filter(id => id !== user.id)
+                        }
+                        setAdminUsers(newAdminUsers)
+                        localStorage.setItem('adminUsers', JSON.stringify(newAdminUsers))
+                      }}
+                      disabled={user.id === '1'} // Can't remove admin access from main admin
+                      className="w-4 h-4"
+                    />
+                    <span>دسترسی مدیریت</span>
+                  </label>
+                </div>
+              ))}
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-4">کاربرانی که این گزینه فعال باشد، می‌توانند به پنل مدیریت دسترسی پیدا کنند.</p>
+          </Card>
+        )}
 
         {/* Logo Tab */}
         {activeTab === 'logo' && (
