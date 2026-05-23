@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DEPARTMENTS } from '@/lib/persian-utils'
 import { getLogoPath, setLogoPath } from '@/lib/config'
-import { getTimeSettings, saveTimeSettings, getFormattedIranTime, fetchIranTimeFromAPI, getCurrentSystemTime, getPersianDateAndTime } from '@/lib/time-utils'
+import { getTimeSettings, saveTimeSettings, fetchIranTimeFromTimeIR, getSystemTime, getPersianDateAndTime } from '@/lib/time-utils'
 
 interface User {
   id: string
@@ -410,9 +410,9 @@ export default function AdminPage() {
                 <Button
                   onClick={async () => {
                     setSyncingTime(true)
-                    const result = await fetchIranTimeFromAPI()
+                    const result = await fetchIranTimeFromTimeIR()
                     if (result) {
-                      setCurrentSystemTime({ ...result, persianDate: currentSystemTime.persianDate })
+                      setCurrentSystemTime(result)
                       alert('تاریخ و ساعت با موفقیت بروز رسانی شد')
                     } else {
                       alert('خطا در دریافت تاریخ و ساعت از اینترنت')
