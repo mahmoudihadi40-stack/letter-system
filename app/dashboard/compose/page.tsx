@@ -395,11 +395,12 @@ export default function ComposePage() {
           <div className="text-center mb-8 pb-6 border-b-2 border-gray-300">
             <div className="mb-4 flex justify-center">
               <Image
-                src="/logo-optimized.png"
+                src="/hotel-logo.png"
                 alt="Nour Hayat Hotel"
                 width={150}
                 height={60}
                 priority
+                style={{ maxHeight: '60px', width: 'auto' }}
               />
             </div>
             <p className="text-lg font-semibold mb-4">بسم الله الرحمن الرحیم</p>

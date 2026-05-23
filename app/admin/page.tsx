@@ -60,6 +60,17 @@ export default function AdminPage() {
   ])
 
   const [customDepartments, setCustomDepartments] = useState(DEPARTMENTS)
+  
+  // Logo settings
+  const [logoSettings, setLogoSettings] = useState({
+    headerLogoWidth: 100,
+    headerLogoHeight: 40,
+    loginLogoWidth: 180,
+    loginLogoHeight: 70,
+    letterLogoWidth: 150,
+    letterLogoHeight: 60,
+    letterLogoAlignment: 'center' as 'left' | 'center' | 'right'
+  })
 
   useEffect(() => {
     const userData = sessionStorage.getItem('user')
@@ -254,8 +265,9 @@ export default function AdminPage() {
         {/* Logo Tab */}
         {activeTab === 'logo' && (
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">تنظیم لوگوی هتل</h2>
-            <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-6">تنظیم لوگوی هتل</h2>
+            <div className="space-y-6">
+              {/* Current Logo Preview */}
               <div>
                 <label className="block text-sm font-semibold mb-2">لوگوی فعلی:</label>
                 <div className="flex justify-center p-4 border rounded-lg bg-gray-50">
@@ -269,6 +281,7 @@ export default function AdminPage() {
                 </div>
               </div>
               
+              {/* Logo Upload */}
               <div>
                 <label className="block text-sm font-semibold mb-2">آپلود لوگوی جدید:</label>
                 <input
@@ -278,7 +291,6 @@ export default function AdminPage() {
                     const file = e.target.files?.[0]
                     if (file) {
                       setLogoFile(file)
-                      // Show preview
                       const reader = new FileReader()
                       reader.onload = (event) => {
                         setCurrentLogo(event.target?.result as string)
@@ -291,25 +303,161 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-500 mt-2">فرمت‌های پشتیبانی‌شده: PNG, JPG, SVG</p>
               </div>
 
-              <Button
-                onClick={() => {
-                  if (logoFile) {
-                    // Store logo in localStorage (in real app, would upload to server)
-                    const reader = new FileReader()
-                    reader.onload = (event) => {
-                      const logoPath = event.target?.result as string
-                      setLogoPath(logoPath)
-                      alert('لوگو با موفقیت تغییر کرد')
-                      setLogoFile(null)
+              {/* Logo Sizes Settings */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold mb-4">تنظیم اندازه‌های لوگو</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Header Logo */}
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">عرض لوگو در سرتیترها (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.headerLogoWidth}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        headerLogoWidth: parseInt(e.target.value) || 100
+                      })}
+                      min="50"
+                      max="300"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">ارتفاع لوگو در سرتیترها (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.headerLogoHeight}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        headerLogoHeight: parseInt(e.target.value) || 40
+                      })}
+                      min="30"
+                      max="150"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+
+                  {/* Login Logo */}
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">عرض لوگو در صفحه لاگین (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.loginLogoWidth}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        loginLogoWidth: parseInt(e.target.value) || 180
+                      })}
+                      min="80"
+                      max="400"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">ارتفاع لوگو در صفحه لاگین (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.loginLogoHeight}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        loginLogoHeight: parseInt(e.target.value) || 70
+                      })}
+                      min="50"
+                      max="250"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+
+                  {/* Letter Logo */}
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">عرض لوگو در نامه‌ها (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.letterLogoWidth}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        letterLogoWidth: parseInt(e.target.value) || 150
+                      })}
+                      min="80"
+                      max="300"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">ارتفاع لوگو در نامه‌ها (px)</label>
+                    <input
+                      type="number"
+                      value={logoSettings.letterLogoHeight}
+                      onChange={(e) => setLogoSettings({
+                        ...logoSettings,
+                        letterLogoHeight: parseInt(e.target.value) || 60
+                      })}
+                      min="40"
+                      max="150"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                {/* Letter Logo Alignment */}
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold mb-2">محل لوگو در سربرگ نامه</label>
+                  <select
+                    value={logoSettings.letterLogoAlignment}
+                    onChange={(e) => setLogoSettings({
+                      ...logoSettings,
+                      letterLogoAlignment: e.target.value as 'left' | 'center' | 'right'
+                    })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="center">وسط</option>
+                    <option value="right">راست</option>
+                    <option value="left">چپ</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Save Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (logoFile) {
+                      const reader = new FileReader()
+                      reader.onload = (event) => {
+                        localStorage.setItem('customLogo', event.target?.result as string)
+                        localStorage.setItem('logoSettings', JSON.stringify(logoSettings))
+                        alert('لوگو و تنظیمات با موفقیت ذخیره شدند')
+                        setLogoFile(null)
+                      }
+                      reader.readAsDataURL(logoFile)
+                    } else {
+                      localStorage.setItem('logoSettings', JSON.stringify(logoSettings))
+                      alert('تنظیمات لوگو با موفقیت ذخیره شدند')
                     }
-                    reader.readAsDataURL(logoFile)
-                  }
-                }}
-                disabled={!logoFile}
-                className="bg-green-600 hover:bg-green-700 text-white w-full"
-              >
-                ذخیره لوگو
-              </Button>
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  ذخیره تنظیمات
+                </Button>
+                <Button
+                  onClick={() => {
+                    setLogoSettings({
+                      headerLogoWidth: 100,
+                      headerLogoHeight: 40,
+                      loginLogoWidth: 180,
+                      loginLogoHeight: 70,
+                      letterLogoWidth: 150,
+                      letterLogoHeight: 60,
+                      letterLogoAlignment: 'center'
+                    })
+                    localStorage.removeItem('logoSettings')
+                    alert('تنظیمات به حالت پیش‌فرض بازگردانده شدند')
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  بازنشانی
+                </Button>
+              </div>
             </div>
           </Card>
         )}

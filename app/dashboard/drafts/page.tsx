@@ -67,6 +67,46 @@ export default function DraftsPage() {
     }
   }
 
+  const handleSubmit = (draft: Draft) => {
+    if (confirm('آیا می‌خواهید این نامه را برای تایید ارسال کنید؟')) {
+      // Create letter from draft
+      const letters = JSON.parse(localStorage.getItem('letters') || '[]')
+      const newLetter = {
+        id: `letter_${Date.now()}`,
+        letterNumber: draft.letterNumber,
+        letterDate: draft.letterDate,
+        subject: draft.subject,
+        content: draft.content,
+        fromDepart: user?.department || 'it',
+        toDepart: draft.toDepart,
+        recipients: draft.recipients,
+        fontSize: draft.fontSize,
+        fontFamily: draft.fontFamily,
+        bold: draft.bold,
+        italic: draft.italic,
+        underline: draft.underline,
+        textAlign: draft.textAlign,
+        status: 'pending_approval',
+        createdBy: user?.id,
+        createdAt: new Date().toISOString(),
+        approvedBy: null,
+        approvedAt: null,
+        instructions: draft.instructions
+      }
+      
+      letters.push(newLetter)
+      localStorage.setItem('letters', JSON.stringify(letters))
+      
+      // Remove from drafts
+      const allDrafts = JSON.parse(localStorage.getItem('drafts') || '[]')
+      const filtered = allDrafts.filter((d: Draft) => d.id !== draft.id)
+      localStorage.setItem('drafts', JSON.stringify(filtered))
+      setDrafts(filtered)
+      
+      alert('نامه با موفقیت برای تایید ارسال شد')
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -127,6 +167,14 @@ export default function DraftsPage() {
                       className="text-green-600"
                     >
                       ویرایش
+                    </Button>
+                    <Button
+                      onClick={() => handleSubmit(draft)}
+                      variant="outline"
+                      size="sm"
+                      className="text-amber-600 font-semibold"
+                    >
+                      ارسال برای تایید
                     </Button>
                     <Button
                       onClick={() => handleDelete(draft.id)}
