@@ -38,9 +38,18 @@ export async function fetchIranTimeFromTimeIR(): Promise<{ date: string; time: s
     if (!data.success) {
       return null
     }
+
+    // Check if user has manually adjusted the Jalali year
+    const settings = getTimeSettings()
+    let persianDate = data.persianDate
+    
+    if (settings.manualJalaliYear) {
+      const [year, month, day] = data.persianDate.split('/')
+      persianDate = `${settings.manualJalaliYear}/${settings.manualJalaliMonth || month}/${settings.manualJalaliDay || day}`
+    }
     
     return {
-      persianDate: data.persianDate,
+      persianDate: persianDate,
       time: data.time,
       date: '' // Not used in UI but kept for compatibility
     }
@@ -50,14 +59,30 @@ export async function fetchIranTimeFromTimeIR(): Promise<{ date: string; time: s
   }
 }
 
-// Get system time as fallback
+// Get system time as fallback with Jalali year adjustment support
 export function getSystemTime(): { date: string; time: string; persianDate: string } {
   const now = new Date()
   const date = now.toISOString().split('T')[0]
   const time = now.toTimeString().split(' ')[0].substring(0, 5)
   
   const jDate = gregorianToJalali(now)
-  const persianDate = `${jDate.year}/${String(jDate.month).padStart(2, '0')}/${String(jDate.day).padStart(2, '0')}`
+  let year = jDate.year
+  let month = jDate.month
+  let day = jDate.day
+  
+  // Check if user has manually adjusted the Jalali year/month/day
+  const settings = getTimeSettings()
+  if (settings.manualJalaliYear) {
+    year = settings.manualJalaliYear
+  }
+  if (settings.manualJalaliMonth) {
+    month = settings.manualJalaliMonth
+  }
+  if (settings.manualJalaliDay) {
+    day = settings.manualJalaliDay
+  }
+  
+  const persianDate = `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`
   
   return { date, time, persianDate }
 }

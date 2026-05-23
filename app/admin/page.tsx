@@ -74,7 +74,17 @@ export default function AdminPage() {
   })
 
   // Time settings
-  const [timeSettings, setTimeSettings] = useState(() => getTimeSettings())
+  const [timeSettings, setTimeSettings] = useState(() => {
+    const saved = getTimeSettings()
+    return {
+      ...saved,
+      timeMode: saved.timeMode || 'automatic',
+      manualJalaliYear: saved.manualJalaliYear || 1403,
+      manualJalaliMonth: saved.manualJalaliMonth || 1,
+      manualJalaliDay: saved.manualJalaliDay || 1,
+      manualTime: saved.manualTime || '12:00'
+    }
+  })
   const [currentSystemTime, setCurrentSystemTime] = useState(getPersianDateAndTime())
   const [syncingTime, setSyncingTime] = useState(false)
   
@@ -372,34 +382,66 @@ export default function AdminPage() {
             {/* Manual Time Settings */}
             {timeSettings.timeMode === 'manual' && (
               <div className="border-t pt-6 mb-6">
-                <h3 className="font-semibold mb-4">تنظیم دستی</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <h3 className="font-semibold mb-4">تنظیم دستی تاریخ شمسی</h3>
+                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold mb-2">تاریخ (YYYY-MM-DD)</label>
+                    <label className="block text-sm font-semibold mb-2">سال شمسی</label>
                     <input
-                      type="date"
-                      value={timeSettings.manualDate}
+                      type="number"
+                      value={timeSettings.manualJalaliYear || 1403}
                       onChange={(e) => {
-                        const newSettings = { ...timeSettings, manualDate: e.target.value }
+                        const newSettings = { ...timeSettings, manualJalaliYear: parseInt(e.target.value) || 1403 }
                         setTimeSettings(newSettings)
                         saveTimeSettings(newSettings)
                       }}
+                      min="1300"
+                      max="1500"
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-2">ساعت (HH:mm)</label>
+                    <label className="block text-sm font-semibold mb-2">ماه (1-12)</label>
                     <input
-                      type="time"
-                      value={timeSettings.manualTime}
+                      type="number"
+                      value={timeSettings.manualJalaliMonth || 1}
                       onChange={(e) => {
-                        const newSettings = { ...timeSettings, manualTime: e.target.value }
+                        const newSettings = { ...timeSettings, manualJalaliMonth: Math.min(12, Math.max(1, parseInt(e.target.value) || 1)) }
                         setTimeSettings(newSettings)
                         saveTimeSettings(newSettings)
                       }}
+                      min="1"
+                      max="12"
                       className="w-full px-3 py-2 border rounded-lg"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">روز (1-31)</label>
+                    <input
+                      type="number"
+                      value={timeSettings.manualJalaliDay || 1}
+                      onChange={(e) => {
+                        const newSettings = { ...timeSettings, manualJalaliDay: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)) }
+                        setTimeSettings(newSettings)
+                        saveTimeSettings(newSettings)
+                      }}
+                      min="1"
+                      max="31"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold mb-2">ساعت (HH:mm)</label>
+                  <input
+                    type="time"
+                    value={timeSettings.manualTime}
+                    onChange={(e) => {
+                      const newSettings = { ...timeSettings, manualTime: e.target.value }
+                      setTimeSettings(newSettings)
+                      saveTimeSettings(newSettings)
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
                 </div>
               </div>
             )}
