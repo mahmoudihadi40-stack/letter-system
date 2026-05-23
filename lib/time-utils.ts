@@ -23,8 +23,39 @@ export function getFormattedIranTime(): { date: string; time: string } {
   return { date, time }
 }
 
-// Get time from worldtime API (more reliable)
-export async function fetchIranTimeFromAPI(): Promise<{ date: string; time: string } | null> {
+// Get time from time.ir (Iran's official time server)
+export async function fetchIranTimeFromTimeIR(): Promise<{ date: string; time: string; persianDate: string } | null> {
+  try {
+    const response = await fetch('https://www.time.ir/datep')
+    if (!response.ok) throw new Error('time.ir API call failed')
+    
+    const text = await response.text()
+    // Response format: year/month/day hour:minute:second
+    const match = text.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+):(\d+)/)
+    
+    if (!match) {
+      // Fallback to worldtimeapi
+      return fetchIranTimeFromAPI()
+    }
+    
+    const [, year, month, day, hour, minute] = match
+    const persianDate = `${year}/${month}/${day}`
+    const time = `${hour}:${minute}`
+    
+    // Convert Jalali to Gregorian for consistency
+    const gDate = jalaliToGregorian(parseInt(year), parseInt(month), parseInt(day))
+    const date = `${gDate.year}-${String(gDate.month).padStart(2, '0')}-${String(gDate.day).padStart(2, '0')}`
+    
+    return { date, time, persianDate }
+  } catch (error) {
+    console.error('[v0] Failed to fetch from time.ir:', error)
+    // Fallback to worldtimeapi
+    return fetchIranTimeFromAPI()
+  }
+}
+
+// Get time from worldtime API (fallback)
+export async function fetchIranTimeFromAPI(): Promise<{ date: string; time: string; persianDate: string } | null> {
   try {
     const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Tehran')
     if (!response.ok) throw new Error('API call failed')
@@ -35,11 +66,80 @@ export async function fetchIranTimeFromAPI(): Promise<{ date: string; time: stri
     const date = datetime.toISOString().split('T')[0]
     const time = datetime.toTimeString().split(' ')[0].substring(0, 5)
     
-    return { date, time }
+    const jDate = gregorianToJalali(datetime)
+    const persianDate = formatJalaliDate(jDate)
+    
+    return { date, time, persianDate }
   } catch (error) {
     console.error('[v0] Failed to fetch Iran time from API:', error)
     return null
   }
+}
+
+// Jalali to Gregorian conversion
+export function jalaliToGregorian(jy: number, jm: number, jd: number): { year: number; month: number; day: number } {
+  const epochDays = 79
+  let yearDays = 0
+  
+  for (let y = 1; y < jy; y++) {
+    yearDays += 365 + (y % 33 === 1 || y % 33 === 5 || y % 33 === 9 || y % 33 === 13 || y % 33 === 17 || y % 33 === 22 || y % 33 === 26 || y % 33 === 30 ? 1 : 0)
+  }
+  
+  const monthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29]
+  let dayInYear = jd
+  for (let i = 0; i < jm - 1; i++) {
+    dayInYear += monthDays[i]
+  }
+  
+  const j_d_n = yearDays + dayInYear + epochDays
+  
+  let gy = 400 * Math.floor(j_d_n / 146097)
+  let gd = j_d_n % 146097
+  
+  const leapAdj = Math.floor(gd / 36524)
+  if (leapAdj > 3) {
+    gd = (gd % 36524) + 36524
+  } else {
+    gy += 100 * leapAdj
+    gd = gd % 36524
+  }
+  
+  gy += 400 * Math.floor(gd / 146097)
+  gd = gd % 146097
+  
+  let leapAdj2 = Math.floor(gd / 36524)
+  if (leapAdj2 > 3) {
+    gd = (gd % 36524) + 36524
+  } else {
+    gy += 100 * leapAdj2
+    gd = gd % 36524
+  }
+  
+  gy += 4 * Math.floor(gd / 1461)
+  gd = gd % 1461
+  
+  let leapAdj3 = Math.floor(gd / 365)
+  if (leapAdj3 > 3) {
+    gd = (gd % 365) + 365
+  } else {
+    gy += leapAdj3
+    gd = gd % 365
+  }
+  
+  const isLeap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0
+  const monthDaysG = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  
+  let gm = 1
+  let gday = gd + 1
+  for (let i = 0; i < 12; i++) {
+    if (gday <= monthDaysG[i]) {
+      gm = i + 1
+      break
+    }
+    gday -= monthDaysG[i]
+  }
+  
+  return { year: gy, month: gm, day: gday }
 }
 
 // Get time settings from localStorage

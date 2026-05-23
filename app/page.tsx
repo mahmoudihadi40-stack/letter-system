@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
+import { getPersianDateAndTime, fetchIranTimeFromTimeIR } from '@/lib/time-utils'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,9 +15,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [initialized, setInitialized] = useState(false)
+  const [currentTime, setCurrentTime] = useState({ date: '', time: '', persianDate: '' })
 
   useEffect(() => {
     setInitialized(true)
+    
+    // Fetch time from time.ir
+    const fetchTime = async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getPersianDateAndTime())
+      }
+    }
+    
+    fetchTime()
+    
+    // Update time every second
+    const interval = setInterval(async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      }
+    }, 1000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -63,7 +87,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      {/* Time Display Bar */}
+      <div className="bg-amber-700 text-white py-2 px-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
+          <div className="flex gap-6">
+            <div>
+              <span className="text-amber-200">تاریخ شمسی:</span>
+              <span className="ml-2 font-semibold">{currentTime.persianDate}</span>
+            </div>
+            <div>
+              <span className="text-amber-200">ساعت:</span>
+              <span className="ml-2 font-semibold">{currentTime.time}</span>
+            </div>
+          </div>
+          <div className="text-xs text-amber-200">
+            هتل نور حیات - سیستم نامه‌نگاری
+          </div>
+        </div>
+      </div>
+
+      {/* Login Content */}
+      <div className="flex items-center justify-center p-4 flex-1">
       <Card className="w-full max-w-md shadow-lg">
         <div className="p-8">
           <div className="text-center mb-8">
@@ -132,6 +177,7 @@ export default function LoginPage() {
           </form>
         </div>
       </Card>
+      </div>
     </div>
   )
 }

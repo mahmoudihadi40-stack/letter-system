@@ -16,10 +16,13 @@ interface User {
   permissions: string[]
 }
 
+import { getPersianDateAndTime, fetchIranTimeFromTimeIR } from '@/lib/time-utils'
+
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentTime, setCurrentTime] = useState({ date: '', time: '', persianDate: '' })
 
   useEffect(() => {
     const userData = sessionStorage.getItem('user')
@@ -28,7 +31,29 @@ export default function DashboardPage() {
     } else {
       router.push('/')
     }
+    
+    // Fetch time from time.ir
+    const fetchTime = async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getPersianDateAndTime())
+      }
+    }
+    
+    fetchTime()
+    
+    // Update time every second
+    const interval = setInterval(async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      }
+    }, 1000)
+    
     setLoading(false)
+    return () => clearInterval(interval)
   }, [router])
 
   const handleLogout = () => {
@@ -43,6 +68,25 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Time Display Bar */}
+      <div className="bg-amber-700 text-white py-2 px-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
+          <div className="flex gap-6">
+            <div>
+              <span className="text-amber-200">تاریخ شمسی:</span>
+              <span className="ml-2 font-semibold">{currentTime.persianDate}</span>
+            </div>
+            <div>
+              <span className="text-amber-200">ساعت:</span>
+              <span className="ml-2 font-semibold">{currentTime.time}</span>
+            </div>
+          </div>
+          <div className="text-xs text-amber-200">
+            هتل نور حیات - سیستم نامه‌نگاری
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
