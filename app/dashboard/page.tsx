@@ -1,146 +1,223 @@
-import { getCurrentUser } from '@/lib/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Mail, CheckSquare, Home, Send, Download, Plus, Search } from 'lucide-react';
+'use client'
 
-export const metadata = {
-  title: 'داشبورد - سیستم نامه‌نگاری',
-};
+import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import Link from 'next/link'
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
+interface User {
+  id: string
+  username: string
+  full_name: string
+  email: string
+  role: string
+  permissions: string[]
+}
+
+import { getPersianDateAndTime, fetchIranTimeFromTimeIR, getSystemTime } from '@/lib/time-utils'
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [currentTime, setCurrentTime] = useState({ date: '', time: '', persianDate: '' })
+
+  useEffect(() => {
+    const userData = sessionStorage.getItem('user')
+    if (userData) {
+      setUser(JSON.parse(userData))
+    } else {
+      router.push('/')
+    }
+    
+    // Fetch time from time.ir
+    const fetchTime = async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getPersianDateAndTime())
+      }
+    }
+    
+    fetchTime()
+    
+    // Update time every second
+    const interval = setInterval(async () => {
+      const timeData = await fetchIranTimeFromTimeIR()
+      if (timeData) {
+        setCurrentTime(timeData)
+      } else {
+        setCurrentTime(getSystemTime())
+      }
+    }, 1000)
+    
+    setLoading(false)
+    return () => clearInterval(interval)
+  }, [router])
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    router.push('/')
+  }
+
+  if (loading) return <div className="text-center py-10">در حال بارگذاری...</div>
+
+  if (!user) return null
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">خوش‌آمدید، {user?.full_name}</h1>
-        <p className="text-gray-600">سیستم مدیریت نامه‌نگاری اداری</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Time Display Bar */}
+      <div className="bg-amber-700 text-white py-2 px-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center text-sm">
+          <div className="flex gap-6">
+            <div>
+              <span className="text-amber-200">تاریخ شمسی:</span>
+              <span className="ml-2 font-semibold">{currentTime.persianDate}</span>
+            </div>
+            <div>
+              <span className="text-amber-200">ساعت:</span>
+              <span className="ml-2 font-semibold">{currentTime.time}</span>
+            </div>
+          </div>
+          <div className="text-xs text-amber-200">
+            هتل نور حیات - سیستم نامه‌نگاری
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* نامه‌های صادره */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-blue-500" />
-              نامه‌های صادره
-            </CardTitle>
-            <CardDescription>
-              نامه‌های ارسالی شما
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              مشاهده و پیگیری نامه‌های ارسالی
-            </p>
-            <Link href="/dashboard/sent-letters">
-              <Button variant="outline" className="w-full bg-transparent">
-                <Mail className="w-4 h-4 ml-2" />
-                کارتابل صادره
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="h-14 flex items-center">
+              <Image
+                src="/hotel-logo.png"
+                alt="Nour Hayat Hotel"
+                width={120}
+                height={50}
+                priority
+                style={{ maxHeight: '56px', width: 'auto' }}
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">خوش آمدید</p>
+              <p className="text-gray-600 font-semibold">{user.full_name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="font-semibold text-gray-900">{user.full_name}</p>
+              <p className="text-sm text-gray-500">{user.role}</p>
+            </div>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+            >
+              خروج
+            </Button>
+          </div>
+        </div>
+      </header>
 
-        {/* نامه‌های وارده */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5 text-green-500" />
-              نامه‌های وارده
-            </CardTitle>
-            <CardDescription>
-              نامه‌های دریافتی و درخواست‌ها
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              مشاهده نامه‌های دریافتی و تأیید/رد آن‌ها
-            </p>
-            <Link href="/dashboard/inbox">
-              <Button variant="outline" className="w-full bg-transparent">
-                <CheckSquare className="w-4 h-4 ml-2" />
-                کارتابل وارده
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* ثبت نامه جدید */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-purple-500" />
-              نامه جدید
-            </CardTitle>
-            <CardDescription>
-              نوشتن و ارسال نامه‌های اداری
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              ثبت نامه‌ی جدید با امکانات ویرایشی
-            </p>
-            <Link href="/dashboard/letter-writing">
-              <Button variant="outline" className="w-full bg-transparent">
-                <Mail className="w-4 h-4 ml-2" />
-                نامه جدید
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* جست‌وجو در سوابق */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-orange-500" />
-              جست‌وجو در سوابق
-            </CardTitle>
-            <CardDescription>
-              جستجو در نامه‌های قدیمی
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              جستجو بر اساس تاریخ، موضوع یا شماره نامه
-            </p>
-            <Link href="/dashboard/search">
-              <Button variant="outline" className="w-full bg-transparent">
-                <Search className="w-4 h-4 ml-2" />
-                جستجو
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* پنل مدیریت */}
-        {(user?.is_admin || user?.role === 'IT') && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-red-500" />
-                پنل مدیریت
-              </CardTitle>
-              <CardDescription>
-                مدیریت کاربران و بخش‌ها
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                تنظیمات سیستم و مدیریت سازمان
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* نوشتن نامه جدید */}
+          <Link href="/dashboard/compose">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="text-4xl mb-4">✍️</div>
+              <h2 className="text-lg font-semibold mb-2">نوشتن نامه جدید</h2>
+              <p className="text-gray-600 text-sm">
+                یک نامه اداری جدید بنویسید
               </p>
-              <Link href="/dashboard/admin">
-                <Button variant="outline" className="w-full bg-transparent">
-                  <Home className="w-4 h-4 ml-2" />
-                  ورود به مدیریت
+            </Card>
+          </Link>
+
+          {/* کارتابل نامه‌های صادره */}
+          <Link href="/dashboard/outbox">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="text-4xl mb-4">📤</div>
+              <h2 className="text-lg font-semibold mb-2">نامه‌های صادره</h2>
+              <p className="text-gray-600 text-sm">
+                نامه‌های ارسالی و منتظر تایید
+              </p>
+            </Card>
+          </Link>
+
+          {/* کارتابل نامه‌های وارده */}
+          <Link href="/dashboard/inbox">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="text-4xl mb-4">📥</div>
+              <h2 className="text-lg font-semibold mb-2">نامه‌های وارده</h2>
+              <p className="text-gray-600 text-sm">
+                نامه‌های دریافتی و معلق
+              </p>
+            </Card>
+          </Link>
+
+          {/* جستجو و آرشیو */}
+          <Link href="/dashboard/search">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="text-4xl mb-4">🔍</div>
+              <h2 className="text-lg font-semibold mb-2">جستجو و آرشیو</h2>
+              <p className="text-gray-600 text-sm">
+                جستجو در سوابق نامه‌ها
+              </p>
+            </Card>
+          </Link>
+
+          {/* پیش‌نویس‌ها */}
+          <Link href="/dashboard/drafts">
+            <Card className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="text-4xl mb-4">📝</div>
+              <h2 className="text-lg font-semibold mb-2">پیش‌نویس‌ها</h2>
+              <p className="text-gray-600 text-sm">
+                نامه‌های ذخیره‌نشده‌ی شما
+              </p>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Admin Panel Link */}
+        {user.permissions?.includes('manage_users') && (
+          <Card className="p-6 mb-8 bg-blue-50 border-blue-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">پنل مدیریت</h3>
+                <p className="text-blue-700">
+                  شما دسترسی مدیریت دارید. می‌توانید کاربران و سیستم را مدیریت کنید.
+                </p>
+              </div>
+              <Link href="/admin">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  ورود به پنل مدیریت
                 </Button>
               </Link>
-            </CardContent>
+            </div>
           </Card>
         )}
-      </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="p-6">
+            <p className="text-gray-600 mb-2">نامه‌های صادره امروز</p>
+            <p className="text-4xl font-bold text-indigo-600">0</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-gray-600 mb-2">نامه‌های منتظر تایید</p>
+            <p className="text-4xl font-bold text-yellow-600">0</p>
+          </Card>
+          <Card className="p-6">
+            <p className="text-gray-600 mb-2">کل نامه‌ها</p>
+            <p className="text-4xl font-bold text-green-600">0</p>
+          </Card>
+        </div>
+      </main>
     </div>
-  );
+  )
 }

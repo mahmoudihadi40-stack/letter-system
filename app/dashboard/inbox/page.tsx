@@ -1,227 +1,294 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Eye, Check, X, Loader2 } from 'lucide-react';
-import { LetterEditor } from '@/components/letter/editor';
+import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { DEPARTMENTS } from '@/lib/persian-utils'
+
+interface User {
+  id: string
+  full_name: string
+  role?: string
+  department?: string
+}
 
 interface Letter {
-  id: number;
-  from_user_id: number;
-  subject: string;
-  content: string;
-  content_html: string;
-  status: string;
-  created_at: string;
+  id: string
+  letterNumber: string
+  letterDate: string
+  subject: string
+  fromDepart: string
+  toDepart: string
+  status: string
+  createdBy: string
+  approvedBy?: string
+  content?: string
 }
 
 export default function InboxPage() {
-  const [letters, setLetters] = useState<Letter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
-  const [comment, setComment] = useState('');
-  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject' | null>(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [letters, setLetters] = useState<Letter[]>([])
+  const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
+  const [instructions, setInstructions] = useState('')
+  const [canAddInstructions, setCanAddInstructions] = useState(false)
 
   useEffect(() => {
-    fetchLetters();
-  }, []);
-
-  const fetchLetters = async () => {
-    try {
-      const response = await fetch('/api/inbox');
-      if (!response.ok) throw new Error('خطا در بارگیری');
-      const data = await response.json();
-      setLetters(data.letters);
-    } catch (err) {
-      setError('خطا در بارگیری نامه‌ها');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    const userData = sessionStorage.getItem('user')
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
+      
+      // نامه‌هایی که به این بخش ارسال شده‌اند
+      const allLetters = JSON.parse(localStorage.getItem('letters') || '[]')
+      const inboxLetters = allLetters.filter((l: Letter) => l.toDepart === parsedUser.department)
+      setLetters(inboxLetters)
+    } else {
+      router.push('/')
     }
-  };
+  }, [router])
 
-  const handleApproveReject = async (action: 'approve' | 'reject') => {
-    if (!selectedLetter) return;
-
-    try {
-      const response = await fetch(`/api/letters/${selectedLetter.id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: action === 'approve' ? 'approved' : 'rejected',
-          comment,
-        }),
-      });
-
-      if (!response.ok) throw new Error('خطا در تأیید');
-
-      setSuccess(action === 'approve' ? 'نامه تأیید شد' : 'نامه رد شد');
-      setSelectedLetter(null);
-      setComment('');
-      setApprovalAction(null);
-      fetchLetters();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا');
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      pending: 'default',
-      approved: 'secondary',
-      rejected: 'destructive',
-      forwarded: 'outline',
-    };
-    return variants[status] || 'default';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending: 'در انتظار تأیید',
-      approved: 'تأیید شده',
-      rejected: 'رد شده',
-      forwarded: 'ارجاع شده',
-    };
-    return labels[status] || status;
-  };
-
-  if (loading) {
-    return (
-      <div className="p-6 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  const handleViewLetter = (letter: Letter) => {
+    setSelectedLetter(letter)
+    setShowDetails(true)
+    
+    // فقط مسئول بخش و مدیر عامل می‌توانند دستورات بنویسند
+    const canWrite = user?.role === 'مسئول بخش' || user?.role === 'مدیر عامل'
+    setCanAddInstructions(canWrite && letter.status === 'pending_approval')
   }
 
+  const handleAddInstructions = (letterId: string) => {
+    if (!user || !instructions.trim()) {
+      alert('لطفاً دستورات را وارد کنید')
+      return
+    }
+
+    const allLetters = JSON.parse(localStorage.getItem('letters') || '[]')
+    const updated = allLetters.map((l: Letter) =>
+      l.id === letterId ? { ...l, instructions, status: 'approved' } : l
+    )
+    localStorage.setItem('letters', JSON.stringify(updated))
+    
+    const inboxLetters = updated.filter((l: Letter) => l.toDepart === user.department)
+    setLetters(inboxLetters)
+    setShowDetails(false)
+    setInstructions('')
+    
+    alert('دستورات ثبت شد')
+  }
+
+  const handleReturnToSender = (letterId: string) => {
+    if (!user) return
+
+    const letter = letters.find(l => l.id === letterId)
+    if (!letter) return
+
+    if (letter.status === 'approved') {
+      alert('نامه‌ی امضاء‌شده قابل عودت نیست')
+      return
+    }
+
+    if (confirm('آیا مطمئن هستید که می‌خواهید نامه را برگردانید؟')) {
+      const allLetters = JSON.parse(localStorage.getItem('letters') || '[]')
+      const updated = allLetters.map((l: Letter) =>
+        l.id === letterId ? { ...l, status: 'returned', returnedBy: user.id } : l
+      )
+      localStorage.setItem('letters', JSON.stringify(updated))
+      
+      const inboxLetters = updated.filter((l: Letter) => l.toDepart === user.department)
+      setLetters(inboxLetters)
+      setShowDetails(false)
+      
+      alert('نامه به فرستنده برگشت داده شد')
+    }
+  }
+
+  if (!user) return null
+
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">کارتابل</h1>
-        <p className="text-gray-600">نامه‌های دریافتی و درخواست‌های تأیید</p>
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="bg-green-50 border-green-200">
-          <AlertCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-600">{success}</AlertDescription>
-        </Alert>
-      )}
-
-      {letters.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-gray-600">نامه‌ای برای تأیید وجود ندارد</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {letters.map((letter) => (
-            <Card key={letter.id} className="cursor-pointer hover:shadow-md transition">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{letter.subject}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      تاریخ: {new Date(letter.created_at).toLocaleDateString('fa-IR')}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {letter.content.substring(0, 100)}...
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Badge variant={getStatusBadge(letter.status)}>
-                      {getStatusLabel(letter.status)}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedLetter(letter)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      مشاهده
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-amber-500">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Image
+              src="/logo-optimized.png"
+              alt="Nour Hayat Hotel"
+              width={100}
+              height={40}
+              priority
+            />
+            <p className="text-sm text-gray-500">نامه‌های وارده</p>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            variant="outline"
+          >
+            بازگشت
+          </Button>
         </div>
-      )}
+      </header>
 
-      {/* Dialog مشاهده نامه */}
-      {selectedLetter && (
-        <Dialog open={!!selectedLetter} onOpenChange={() => setSelectedLetter(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedLetter.subject}</DialogTitle>
-              <DialogDescription>
-                نامه از تاریخ {new Date(selectedLetter.created_at).toLocaleDateString('fa-IR')}
-              </DialogDescription>
-            </DialogHeader>
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Filters */}
+        <Card className="p-4 mb-6">
+          <div className="flex gap-4 flex-wrap">
+            <input
+              type="text"
+              placeholder="جستجو برای موضوع یا شماره..."
+              className="px-4 py-2 border rounded-lg flex-1"
+            />
+          </div>
+        </Card>
 
-            {selectedLetter.status === 'pending' && (
-              <div className="space-y-4 bg-yellow-50 p-4 rounded border border-yellow-200">
-                <p className="text-sm font-medium">عملیات تأیید</p>
-
-                <Textarea
-                  placeholder="نظر یا توضیح (اختیاری)"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="min-h-20"
-                />
-
+        {/* Letters List */}
+        <div className="space-y-4">
+          {letters.length === 0 ? (
+            <Card className="p-12 text-center">
+              <p className="text-gray-500">هیچ نامه‌ای وجود ندارد</p>
+            </Card>
+          ) : (
+            letters.map((letter) => (
+              <Card key={letter.id} className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500 mb-2">
+                      شماره: {letter.letterNumber} | تاریخ: {letter.letterDate}
+                    </p>
+                    <h3 className="text-lg font-semibold mb-2">{letter.subject}</h3>
+                    <p className="text-sm text-gray-600">
+                      از: {DEPARTMENTS.find(d => d.id === letter.fromDepart)?.name || 'نامشخص'}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      letter.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : letter.status === 'returned'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {letter.status === 'approved'
+                      ? 'تایید‌شده'
+                      : letter.status === 'returned'
+                        ? 'برگشت‌خورده'
+                        : 'درانتظار'}
+                  </span>
+                </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => handleApproveReject('approve')}
-                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleViewLetter(letter)}
+                    variant="outline"
+                    size="sm"
                   >
-                    <Check className="h-4 w-4 mr-2" />
-                    تأیید و ارسال
+                    مشاهده
                   </Button>
-                  <Button
-                    onClick={() => handleApproveReject('reject')}
-                    variant="destructive"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    رد کردن
-                  </Button>
+                  {letter.status !== 'approved' && letter.status !== 'returned' && (
+                    <Button
+                      onClick={() => handleReturnToSender(letter.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600"
+                    >
+                      برگشت به فرستنده
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </main>
+
+      {/* Letter Details Modal */}
+      {showDetails && selectedLetter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
+          <Card className="max-w-4xl w-full p-8" style={{ direction: 'rtl' }}>
+            <div className="grid grid-cols-3 gap-6">
+              {/* Letter Content */}
+              <div className="col-span-2">
+                {/* Header */}
+                <div className="text-center mb-8 pb-6 border-b-2 border-gray-300">
+                  <p className="text-lg font-semibold mb-4">بسم الله الرحمن الرحیم</p>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <div className="text-right">
+                      <p>تاریخ: {selectedLetter.letterDate}</p>
+                      <p>شماره: {selectedLetter.letterNumber}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <div className="mb-8">
+                  <p className="mb-4">
+                    <span className="font-semibold">از:</span> {DEPARTMENTS.find(d => d.id === selectedLetter.fromDepart)?.fullName}
+                  </p>
+                  <p className="mb-4">
+                    <span className="font-semibold">به:</span> {DEPARTMENTS.find(d => d.id === selectedLetter.toDepart)?.fullName}
+                  </p>
+                  <div className="mb-6 pb-4 border-b border-gray-300">
+                    <p>
+                      <span className="font-semibold">موضوع:</span> {selectedLetter.subject}
+                    </p>
+                  </div>
+
+                  <p className="whitespace-pre-wrap mb-8">{selectedLetter.content}</p>
+
+                  {/* Signature */}
+                  <div className="mt-8 flex justify-end">
+                    <div className="text-center w-40">
+                      <div className="mb-8 h-12 border-b border-gray-400"></div>
+                      <p className="font-semibold">امضاء</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <div className="border rounded p-4">
-              <h4 className="font-semibold mb-4">متن نامه</h4>
-              <LetterEditor
-                content={selectedLetter.content_html}
-                readOnly
-              />
+              {/* Instructions Section */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-4">پینوشت / دستورات</h4>
+                {canAddInstructions && selectedLetter.status === 'pending_approval' ? (
+                  <div>
+                    <textarea
+                      value={instructions}
+                      onChange={(e) => setInstructions(e.target.value)}
+                      placeholder="دستورات خود را بنویسید..."
+                      className="w-full px-3 py-2 border rounded-md text-sm min-h-24 focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button
+                      onClick={() => handleAddInstructions(selectedLetter.id)}
+                      className="w-full mt-2 bg-blue-600 hover:bg-blue-700"
+                      size="sm"
+                    >
+                      ثبت دستورات
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    {user?.role === 'مسئول بخش' || user?.role === 'مدیر عامل'
+                      ? 'می‌توانید دستورات اضافه کنید'
+                      : 'شما نمی‌توانید دستورات اضافه کنید'}
+                  </p>
+                )}
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
+
+            {/* Close Button */}
+            <div className="flex justify-end mt-6 gap-2">
+              <Button
+                onClick={() => setShowDetails(false)}
+                variant="outline"
+              >
+                بستن
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
-  );
+  )
 }
